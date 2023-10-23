@@ -1,46 +1,61 @@
 import React, { Component } from 'react';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator } from 'react-native';
 
-// Your eBird API key and region code for New York (as part of the Northeast US)
+// Constants for eBird API
 const API_KEY = '5ms7hdo849vo';
-const REGION_CODE = 'US-NY'; // For New York as an example
+const REGION_CODE = 'US-NY';
 
 export default class App extends Component {
-    state = {
-        sightings: [],
-        loading: true,
-        error: null,
-    };
+    constructor(props) {
+        super(props);
 
-    componentDidMount() {
-        this.fetchRecentSightings();
+        // Initial state
+        this.state = {
+            birdSightings: [],
+            isLoading: true,
+            errorMessage: null,
+        };
     }
 
-    fetchRecentSightings = () => {
-        fetch(`https://api.ebird.org/v2/data/obs/${REGION_CODE}/recent`, {
+    componentDidMount() {
+        this.getSightingsFromAPI();
+    }
+
+    getSightingsFromAPI() {
+        const apiURL = `https://api.ebird.org/v2/data/obs/${REGION_CODE}/recent`;
+
+        fetch(apiURL, {
             headers: {
                 'X-eBirdApiToken': API_KEY,
             },
         })
-            .then(response => {
-                if (!response.ok) {  // Check if response status is not OK
-                    throw new Error('Network response was not ok');
-                }
+            .then((response) => {
+                // Convert the server's response into a JSON object
                 return response.json();
             })
-            .then(data => {
-                this.setState({ sightings: data, loading: false });
+            .then((data) => {
+                // Update the app's state with the new data
+                this.setState({
+                    birdSightings: data,
+                    isLoading: false
+                });
             })
-            .catch(error => {
-                console.error("There was an error fetching data:", error);
-                this.setState({ loading: false, error: error.toString() });
+            .catch((error) => {
+                // If there was an error, update state to show error message
+                this.setState({
+                    isLoading: false,
+                    errorMessage: 'Error fetching data'
+                });
+                console.error('There was an error fetching the data', error);
             });
-    };
+    }
 
     render() {
-        const { sightings, loading, error } = this.state;
+        // Use destructuring for cleaner code
+        const { birdSightings, isLoading, errorMessage } = this.state;
 
-        if (loading) {
+        // Show a loading spinner if data is still loading
+        if (isLoading) {
             return (
                 <View style={styles.container}>
                     <ActivityIndicator size="large" color="#0000ff" />
@@ -48,18 +63,20 @@ export default class App extends Component {
             );
         }
 
-        if (error) {
+        // Show error message if there was an error fetching data
+        if (errorMessage) {
             return (
                 <View style={styles.container}>
-                    <Text>Error fetching data: {error}</Text>
+                    <Text>{errorMessage}</Text>
                 </View>
             );
         }
 
+        // Render the list of bird sightings
         return (
             <View style={styles.container}>
                 <FlatList
-                    data={sightings}
+                    data={birdSightings}
                     keyExtractor={item => item.observationId}
                     renderItem={({ item }) => (
                         <View style={styles.listItem}>
